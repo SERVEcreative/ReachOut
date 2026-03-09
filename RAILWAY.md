@@ -99,10 +99,22 @@ When the app runs in production (e.g. `PORT` is set or `FLASK_ENV=production`), 
 | “Application failed to respond” | Confirm the start command uses `$PORT` (e.g. Gunicorn bound to `0.0.0.0:$PORT`). |
 | Database / login errors | Ensure the app service has **MYSQL_URL** or **DATABASE_URL** from the MySQL service (variable reference or copy-paste). Tables are created on first request (init_db runs at startup). |
 | 502 Bad Gateway | Wait 1–2 minutes after deploy; cold start can be slow. If it persists, check **Deploy logs** for Python or Gunicorn errors. |
+| **SECRET_KEY is default or missing** | In the **web service** → **Variables**, add `SECRET_KEY` with a long random value (e.g. `python -c "import secrets; print(secrets.token_hex(32))"`). Redeploy. |
+| **Send fails / can't connect to Gmail SMTP** | Many cloud platforms (including Railway) block outbound SMTP (port 465/587). The app will show a clear error. Use the app **locally** or on a **VPS** to send emails, or we can add an HTTP-based email API (SendGrid, Resend) later. |
 
 ---
 
-## 8. Optional: use SQLite on Railway
+## 8. Sending email on Railway
+
+Railway and many other PaaS providers **block outbound SMTP** to reduce spam. So **“Send” may fail** on Railway with a connection error. The app will return a friendly error message instead of crashing.
+
+- **Sign up, login, and setup** work on Railway (MySQL is fine).
+- **Sending** from the deployed app often does not work; use **ReachOut on your computer** (`python app.py`) or on a **VPS** where SMTP is allowed.
+- To send from the cloud in the future, the app could be extended to use an email API (e.g. SendGrid, Resend) over HTTPS instead of Gmail SMTP.
+
+---
+
+## 9. Optional: use SQLite on Railway
 
 Railway’s filesystem is **ephemeral** (resets on redeploy), so SQLite is not recommended for production. For a quick test without MySQL you can:
 

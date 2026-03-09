@@ -234,6 +234,8 @@ def send_inquiry_to(recipient_email: str, config: dict | None = None) -> dict:
         return {"success": True}
     except smtplib.SMTPAuthenticationError:
         return {"success": False, "error": "Gmail authentication failed. Use an App Password, not your normal password."}
+    except OSError as e:
+        return {"success": False, "error": "Could not connect to Gmail SMTP. Many cloud hosts (e.g. Railway) block outbound SMTP. Try sending from your computer or use a VPS."}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
