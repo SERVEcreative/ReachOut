@@ -165,6 +165,10 @@ def create_message(
     return msg
 
 
+# SMTP connect timeout (seconds). Prevents worker timeout when host blocks SMTP (e.g. Railway).
+SMTP_TIMEOUT = 15
+
+
 def send_email(
     sender_email: str,
     app_password: str,
@@ -172,7 +176,7 @@ def send_email(
     msg: MIMEMultipart,
 ) -> None:
     """Send email via Gmail SMTP."""
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=SMTP_TIMEOUT) as server:
         server.login(sender_email, app_password)
         server.sendmail(sender_email, recipient_email, msg.as_string())
 
