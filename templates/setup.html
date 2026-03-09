@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}One-time Setup – ReachOut{% endblock %}
+{% block header %}
+  <h1>One-time setup</h1>
+  <p class="subtitle">{% if first_time %}We'll use this to prepare your experience in the email. After this you'll only enter the recipient email to send.{% else %}Update your details. Leave password blank to keep the current one.{% endif %}</p>
+{% endblock %}
+{% block content %}
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+  <form id="setup-form">
+    <label for="your_name">Your name</label>
+    <input type="text" id="your_name" name="your_name" placeholder="e.g. Jane Doe" value="{{ current.get('your_name', '') }}" autocomplete="name">
+    <label for="total_experience">Total experience</label>
+    <input type="text" id="total_experience" name="total_experience" placeholder="e.g. 2.8 years" value="{{ current.get('total_experience', '') }}">
+    <p class="hint">Used to build the message about your experience.</p>
+    <label for="technology">Technology</label>
+    <input type="text" id="technology" name="technology" placeholder="e.g. Java Spring Boot" value="{{ current.get('technology', '') }}">
+    <label for="experience_from_date">From date</label>
+    <input type="text" id="experience_from_date" name="experience_from_date" placeholder="e.g. January 2022" value="{{ current.get('experience_from_date', '') }}">
+    <label for="sender_email">Gmail address (sender)</label>
+    <input type="email" id="sender_email" name="sender_email" placeholder="you@gmail.com" value="{{ current.get('sender_email', '') }}" required autocomplete="email">
+    <label for="app_password">Gmail App Password</label>
+    <input type="password" id="app_password" name="app_password" placeholder="{% if not first_time %}Leave blank to keep current{% else %}16-character app password{% endif %}" autocomplete="off">
+    <p class="hint">Use an <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Password</a>, not your normal Gmail password.</p>
+    <label for="resume_path">Resume: Google Drive link or path (optional)</label>
+    <input type="text" id="resume_path" name="resume_path" placeholder="https://drive.google.com/..." value="{{ current.get('resume_path', '') }}">
+    <button type="submit" id="btn">Save</button>
+  </form>
+{% endblock %}
+{% block links %}
+  <div class="link-row"><a href="{{ url_for('main.index') }}">← Back to Send</a> &nbsp; <a href="{{ url_for('auth.logout') }}">Log out</a></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const form = document.getElementById('setup-form');
+  const btn = document.getElementById('btn');
+  const messageEl = document.getElementById('message');
+  const firstTime = {{ 'true' if first_time else 'false' }};
+  function showMessage(text, isError) {
+    messageEl.textContent = text;
+    messageEl.className = 'message visible ' + (isError ? 'error' : 'success');
+    messageEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const appPassword = document.getElementById('app_password').value;
+    if (firstTime && !appPassword.trim()) {
+      showMessage('App password is required for first-time setup.', true);
+      return;
+    }
+    messageEl.className = 'message';
+    messageEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('{{ url_for("api.api_setup") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          your_name: document.getElementById('your_name').value.trim(),
+          sender_email: document.getElementById('sender_email').value.trim(),
+          app_password: appPassword,
+          total_experience: document.getElementById('total_experience').value.trim(),
+          technology: document.getElementById('technology').value.trim(),
+          experience_from_date: document.getElementById('experience_from_date').value.trim(),
+          resume_path: document.getElementById('resume_path').value.trim()
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        window.location.href = '{{ url_for("auth.login", msg="session_expired") }}';
+        return;
+      }
+      if (res.ok && data.success) {
+        showMessage('Saved! Taking you to Send…', false);
+        setTimeout(() => { window.location.href = '{{ url_for("main.index") }}'; }, 1000);
+      } else {
+        const errMsg = data.error || (res.ok ? 'Something went wrong.' : 'Server error. Please try again.');
+        showMessage(errMsg, true);
+        btn.disabled = false;
+        btn.textContent = 'Save';
+      }
+    } catch (err) {
+      showMessage('Network error. Please try again.', true);
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+  });
+</script>
+{% endblock %}

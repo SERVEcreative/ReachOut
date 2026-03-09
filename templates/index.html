@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Send – ReachOut{% endblock %}
+{% block header %}
+  <h1>Send inquiry</h1>
+  <p class="subtitle">Enter the recipient's email. Your saved message and resume will be used.</p>
+{% endblock %}
+{% block content %}
+  <form id="form">
+    <label for="email">Recipient email</label>
+    <input type="email" id="email" name="email" placeholder="e.g. hr@company.com" required autocomplete="email">
+    <button type="submit" id="btn">Send</button>
+  </form>
+  <div id="message" class="message" role="status"></div>
+{% endblock %}
+{% block links %}
+  <div class="link-row"><a href="{{ url_for('main.setup') }}">Change setup</a> &nbsp; <a href="{{ url_for('auth.logout') }}">Log out</a></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const form = document.getElementById('form');
+  const emailInput = document.getElementById('email');
+  const btn = document.getElementById('btn');
+  const messageEl = document.getElementById('message');
+  function showMessage(text, isError) {
+    messageEl.textContent = text;
+    messageEl.className = 'message visible ' + (isError ? 'error' : 'success');
+  }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    if (!email) return;
+    messageEl.className = 'message';
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('{{ url_for("api.api_send") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        window.location.href = '{{ url_for("auth.login", msg="session_expired") }}';
+        return;
+      }
+      if (data.success) {
+        showMessage('Email sent successfully to ' + email + '.', false);
+        emailInput.value = '';
+      } else {
+        showMessage(data.error || 'Something went wrong.', true);
+      }
+    } catch (err) {
+      showMessage('Network error. Please try again.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send';
+    }
+  });
+</script>
+{% endblock %}

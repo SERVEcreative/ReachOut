@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Log in – ReachOut{% endblock %}
+{% block header %}
+  <h1>Log in</h1>
+  <p class="subtitle">Enter your account email and password.</p>
+{% endblock %}
+{% block content %}
+  {% if error %}<div class="message visible error">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url_for('auth.login') }}">
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+    <button type="submit">Log in</button>
+  </form>
+{% endblock %}
+{% block links %}
+  <div class="link-row">Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up</a></div>
+{% endblock %}
